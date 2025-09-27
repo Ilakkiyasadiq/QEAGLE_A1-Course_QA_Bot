@@ -1,7 +1,3 @@
-Got it 👍 — let’s make it **clean, professional, mentor-friendly** without emojis.
-Here’s the revised, structured version of your document:
-
----
 
 # Course Q&A Chatbot (RAG + Citations)
 
