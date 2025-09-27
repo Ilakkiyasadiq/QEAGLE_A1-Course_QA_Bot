@@ -1,0 +1,14 @@
+[
+  {
+    "query": "What is IVFFLAT?",
+    "expected_keywords": ["IVFFLAT", "inverted lists", "partition"]
+  },
+  {
+    "query": "What is semantic search?",
+    "expected_keywords": ["meaning", "embeddings", "vector space"]
+  },
+  {
+    "query": "What is cosine similarity used for?",
+    "expected_keywords": ["angle", "normalized", "distance"]
+  }
+]

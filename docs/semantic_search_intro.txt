@@ -1,0 +1,94 @@
+Semantic Search and Vector Databases: A Practical Introduction
+
+1) Why Semantic Search?
+Traditional keyword search matches exact words or phrases. It struggles when users use synonyms (“car” vs. “automobile”), paraphrases, or when the answer spans across multiple sentences. Semantic search, by contrast, aims to retrieve results based on meaning rather than literal token overlap. This is enabled by embeddings—numerical vectors that encode the semantics of text—so that semantically similar texts are near each other in a high‑dimensional vector space.
+
+2) Embeddings in a Nutshell
+An embedding model maps text (words, sentences, documents) into a fixed‑length vector, commonly 384, 512, 768, 1024, or 1536 dimensions. The model is trained so that semantically similar inputs produce vectors that are close under a distance metric (e.g., cosine, L2/Euclidean, or inner product). Once you can embed queries and passages into the same space, retrieval becomes a nearest‑neighbors problem: given a query vector, find the stored vectors that are closest.
+
+Key properties:
+- Dimension: The number of features in each vector (e.g., 768). Higher dimensionality can capture more nuanced semantics but typically requires more memory and careful indexing.
+- Normalization: For cosine similarity, it’s common to L2‑normalize vectors so comparisons become angle‑based rather than magnitude‑based.
+- Tokenization and context window: Different models chunk text differently, and long documents must be split into manageable pieces (chunks) for embedding.
+
+3) Chunking and Overlap
+Long documents exceed model context and need splitting. A common pattern is fixed‑size chunking (e.g., 800–1200 characters) with overlap (e.g., 150–300 characters). Overlap reduces “boundary” problems where relevant information lies across chunk boundaries. Good chunking improves recall without generating too many small, noisy fragments.
+
+4) Distance Metrics and When to Use Them
+- Cosine distance (or cosine similarity): Measures the angle between vectors; works best when vectors are L2‑normalized or when the model implicitly produces normalized vectors. Popular because it’s scale‑insensitive.
+- L2/Euclidean distance: Sensitive to magnitude differences; can work well when embeddings are not normalized, or when the model’s training aligns with Euclidean geometry.
+- Inner product / dot product: Often equivalent to cosine when vectors are normalized; can be efficient in certain libraries and approximate nearest neighbor (ANN) indices.
+Choosing a metric should be guided by your embedding provider’s recommendations and empirical evaluation on your dataset.
+
+5) Vector Databases and pgvector
+A vector database provides storage, indexing, and retrieval for embeddings. Postgres with pgvector is a pragmatic choice when you already rely on Postgres and want to keep transactional and vector workloads together. pgvector adds a vector type (vector[n]) and distance operators (<-> for L2, <=> for cosine, <#> for inner product), and supports approximate indexes like IVFFLAT.
+
+Typical schema:
+- documents(doc_id serial primary key, title text, metadata jsonb)
+- chunks(chunk_id serial primary key, doc_id int references documents, page_num int, text text, embedding vector(768), metadata jsonb)
+This allows multi‑chunk documents with per‑chunk embeddings and flexible metadata.
+
+6) Indexing for Speed
+Exact scan over thousands of vectors can be acceptable, but as you scale you’ll want ANN indexing for speed with a small accuracy trade‑off.
+- IVFFLAT (pgvector): Partitions the space into lists and searches only a subset. Important parameters:
+  - lists: number of inverted lists (e.g., 100–1000+). More lists => better recall but higher memory and build time.
+  - probes: how many lists are searched at query time (set via SET ivfflat.probes = k). More probes => better recall but slower queries.
+- Build example (cosine):
+  CREATE INDEX chunks_embedding_idx ON chunks USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100);
+- L2 variant uses vector_l2_ops.
+After building an index, ANALYZE to help the planner.
+
+7) Retrieval: From Query to Results
+The retrieval flow is straightforward:
+- Embed the user query.
+- Run a nearest neighbors search over chunk embeddings, ordered by your chosen distance.
+- Return top_k chunks and include their text/metadata.
+- Optionally, post‑process results (deduplicate, aggregate per document, or promote diversity).
+
+8) Answer Composition: Extractive vs. Generative
+- Extractive: Return snippets directly from the source chunks. This is deterministic and cheap, and useful when the answer is already contained plainly in the text. It avoids hallucination.
+- Generative: Use an LLM to synthesize a fluent answer from retrieved chunks, citing sources. This is more readable and informative but can be slower and requires additional model configuration.
+A hybrid approach is popular: retrieve top_k chunks, then pass them into a prompt template for an LLM to produce a concise, cited answer.
+
+9) Quality Tips and Common Pitfalls
+- Ensure embedding model alignment: If you normalize vectors, use cosine; if you don’t, evaluate L2 vs. cosine on your data.
+- Keep chunk size consistent: Mismatched chunking strategies can hurt recall. Aim for 800–1200 characters with overlap ~200 as a starting point.
+- Garbage‑in, garbage‑out: Clean the text—remove boilerplate and navigation fluff that can dominate retrieval.
+- Domain adaptation: General‑purpose embeddings are great, but domain‑specific fine‑tuning or model choice (e.g., code, legal, medical) can boost relevance significantly.
+- Monitor distance distributions: If everything looks equally distant, your model may be too small, your chunks too noisy, or your normalization not applied.
+
+10) Cosine vs. L2 in Practice
+- If you L2‑normalize embeddings on write and at query time, cosine similarity (<=> in pgvector) is recommended and often delivers better ranking stability.
+- If you don’t normalize (or your provider discourages it), try L2 (<->). Evaluate on a small labeled set to decide.
+- Consistency matters: Don’t mix metrics or normalization strategies between writing and querying.
+
+11) Building a Minimal Semantic Search System
+- Ingestion: Parse files, chunk with overlap, embed each chunk, and store (doc_id, page_num, text, embedding, metadata).
+- Search: Embed query, run nearest neighbors, return chunks.
+- Composition: Either concatenate top snippets (extractive) or prompt an LLM to generate a short answer with citations.
+- Feedback loop: Collect thumbs‑up/down and error reports to improve chunking, indexing, and model selection.
+
+12) Operational Considerations
+- Storage: 768‑dim float vectors occupy memory and disk; consider precision trade‑offs (fp32 vs. fp16/quantization) where supported.
+- Performance: Add an ANN index (IVFFLAT). Tune lists and probes to hit latency targets.
+- Migrations: Changing dimensions requires altering the column type (e.g., vector(1024)). Plan this when experimenting with new models.
+- Security: Treat LLM or embedding API keys securely; in local setups (like Ollama), secure the endpoint if exposed across networks.
+
+13) Local Embeddings with Ollama (768‑dim)
+Ollama runs models locally and exposes a simple HTTP API. The nomic‑embed‑text model produces 768‑dim vectors, making it a drop‑in replacement for many schemas that already use 768 dimensions. Local inference keeps your data on your machine and removes external API latency and cost, at the expense of CPU/GPU utilization on your host.
+
+14) Putting It All Together
+A robust setup for many teams is:
+- Use Postgres + pgvector for storage and retrieval.
+- Ingest with careful chunking and metadata.
+- Start with extractive answers for determinism; graduate to generative summaries for better user experience.
+- Choose cosine + normalization or L2; be consistent and index appropriately.
+- Evaluate with a small set of representative queries and documents; measure precision@k and user satisfaction.
+
+15) Next Steps
+- Add a vector index (IVFFLAT) tuned to your dataset size.
+- Try alternative local embedding models and compare retrieval quality.
+- Introduce a lightweight generative step to synthesize concise answers.
+- Add feedback capture and simple analytics so you can iterate on chunking, indexing, and model selection.
+
+In summary, semantic search replaces brittle keyword matching with robust, meaning‑aware retrieval. With embeddings, chunking, and a vector database, you can build an effective system that scales from a single document to a sizable corpus. Starting locally with a 768‑dim model is a great balance between capability and simplicity, and Postgres + pgvector provides a familiar, production‑ready foundation.
