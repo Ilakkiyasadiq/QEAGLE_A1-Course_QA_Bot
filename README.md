@@ -27,7 +27,7 @@ A Retrieval-Augmented Generation (RAG) based chatbot that answers course-related
 git clone https://github.com/Ilakkiyasadiq/A1-Course_QA_Bot-.git
 cd A1-Course_QA_Bot-
 
-2. Install Dependencies
+### 2. Install Dependencies
 
 # Frontend
 cd frontend
