@@ -210,5 +210,8 @@ A1-Course_QA_Bot-/
     ├── one-pager.pdf
     └── sample-data/
 ```
-
+Working/Sample Outcomes
 ---
+<img width="1890" height="922" alt="Screenshot 2025-09-27 095201" src="https://github.com/user-attachments/assets/b6b2a9d6-68ae-403d-a491-2747a98f4d18" />
+<img width="1892" height="903" alt="Screenshot 2025-09-27 093101" src="https://github.com/user-attachments/assets/1fc0de75-483f-4d1b-a523-34d1f0bdcafe" />
+
