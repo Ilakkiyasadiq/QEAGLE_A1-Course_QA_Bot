@@ -1,86 +1,119 @@
+Got it 👍 — let’s make it **clean, professional, mentor-friendly** without emojis.
+Here’s the revised, structured version of your document:
+
+---
+
 # Course Q&A Chatbot (RAG + Citations)
 
-A Retrieval-Augmented Generation (RAG) based chatbot that answers course-related questions with direct citations from uploaded documents. The system ensures accurate, trustworthy responses by combining vector search with hybrid retrieval techniques.
+A **Retrieval-Augmented Generation (RAG)** based chatbot that answers course-related questions with direct citations from uploaded documents.
+The system ensures accurate, trustworthy responses by combining vector search with hybrid retrieval techniques.
 
 ---
 
 ## Features
-- Upload course PDFs and query them directly.
-- Retrieval-Augmented Generation (RAG) with citations.
-- Multiple retrieval modes: Vector, Hybrid.
-- Evaluation metrics for Recall@5, Faithfulness, and Latency.
+
+* Upload course PDFs and query them directly
+* Retrieval-Augmented Generation (RAG) with citations
+* Multiple retrieval modes: Vector, Hybrid
+* Evaluation metrics: Recall@5, Faithfulness, Latency
 
 ---
 
 ## Tech Stack
-- **Frontend:** React.js (Vite)  
-- **Backend:** Node.js, Express.js  
-- **Database:** PostgreSQL with pgvector extension  
-- **LLM Integration:** Ollama / OpenAI API  
+
+* **Frontend:** React.js (Vite)
+* **Backend:** Node.js, Express.js
+* **Database:** PostgreSQL with pgvector extension
+* **LLM Integration:** Ollama / openAI
 
 ---
 
-## 🛠️ Setup & Installation
+## Setup & Installation
 
 ### 1. Clone Repository
+
 ```bash
 git clone https://github.com/Ilakkiyasadiq/A1-Course_QA_Bot-.git
 cd A1-Course_QA_Bot-
-2. Install Dependencies
-Frontend:
+```
 
-bash
+### 2. Install Dependencies
+
+**Frontend**
+
+```bash
 cd frontend
 npm install
-Backend:
+```
 
-bash
+**Backend**
+
+```bash
 cd ../backend
 npm install
-3. PostgreSQL + pgVector Setup
-Enable pgvector extension in your PostgreSQL database:
+```
 
-sql
+### 3. PostgreSQL + pgVector Setup
+
+Enable extension:
+
+```sql
 CREATE EXTENSION IF NOT EXISTS vector;
-4. Environment Configuration
-Create .env files from the examples:
+```
 
-Backend (.env):
+### 4. Environment Configuration
 
-env
+**Backend (.env)**
+
+```env
 DATABASE_URL=your_postgresql_connection_string
 OPENAI_API_KEY=your_openai_api_key
 TRANSLATION_API_KEY=your_translation_key
 PORT=3000
-Frontend (.env):
+```
 
-env
+**Frontend (.env)**
+
+```env
 VITE_API_URL=http://localhost:3000/api
-🚀 Run the Project
-Start Backend (Node.js + Express):
+```
 
-bash
+---
+
+## Run the Project
+
+**Backend**
+
+```bash
 cd backend
 npm start
-Start Frontend (React + Vite):
+```
 
-bash
+**Frontend**
+
+```bash
 cd frontend
 npm run dev
-Visit http://localhost:5173 to access the application!
+```
 
-💡 Usage
-Upload a course PDF through the web interface
+Visit: `http://localhost:5173`
 
-Ask questions in natural language (English or supported Indian languages)
+---
 
-Get accurate answers with supporting citations [S1:p2]
+## Usage
 
-Click citations to view original source material
+1. Upload a course PDF through the web interface
+2. Ask questions in natural language
+3. Get accurate answers with citations like `[S1:p2]`
+4. Click citations to view the original source material
 
-🏗️ Architecture Diagram
-System Overview
-text
+---
+
+## Architecture Diagram
+
+### System Overview
+
+```
 ┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
 │   React Frontend│    │  Node.js/Express │    │  PostgreSQL +   │
 │                 │    │     Backend      │    │    pgVector     │
@@ -89,7 +122,6 @@ text
 │  - File Upload  │    │  - Hybrid Search │    │    Metadata     │
 └─────────────────┘    └──────────────────┘    └─────────────────┘
          │                        │                        │
-         │                        │                        │
          │                        ▼                        │
          │              ┌──────────────────┐               │
          │              │   External APIs  │               │
@@ -97,120 +129,86 @@ text
                         │  - Embeddings    │
                         │  - Translation   │
                         └──────────────────┘
-RAG Pipeline Flow
-text
-1. DOCUMENT INGESTION
-   PDF Upload → Text Extraction → Semantic Chunking → Embedding Generation → Vector Storage
+```
 
-2. QUERY PROCESSING
-   User Question → Translation → Hybrid Search (BM25 + Vector) → Re-ranking → Top-k Retrieval
+---
 
-3. ANSWER GENERATION
-   Retrieved Chunks + Question → LLM Prompting → Citation Extraction → Response Formatting
+## RAG Pipeline Flow
 
-4. RESPONSE DELIVERY
-   Answer + Citations → Translation (if needed) → UI Display with Source Viewer
-Technology Stack Highlights
-Frontend Layer:
+1. **Document Ingestion** → PDF upload → Text extraction → Semantic chunking → Embedding generation → Vector storage
+2. **Query Processing** → User question → Translation → Hybrid search (BM25 + Vector) → Re-ranking → Top-k retrieval
+3. **Answer Generation** → Retrieved chunks + Question → LLM prompting → Citation extraction → Response formatting
+4. **Response Delivery** → Answer + Citations → Translation (if needed) → UI display with source viewer
 
-React.js - Component-based UI
+---
 
-Vite - Fast build tooling
+## Technology Stack Highlights
 
-Real-time Chat - Interactive Q&A interface
+### Frontend Layer
 
-Source Viewer - Citation visualization pane
+* React.js - Component-based UI
+* Vite - Fast build tooling
+* Real-time chat interface
+* Source viewer with citation pane
 
-Backend Layer:
+### Backend Layer
 
-Node.js + Express - REST API server
+* Node.js + Express REST API server
+* RAG pipeline with hybrid retrieval and generation
+* Multilingual translation middleware
+* Safety filters for injection protection
 
-RAG Pipeline - Hybrid retrieval & generation
+### Data Layer
 
-Multilingual Support - Translation middleware
+* PostgreSQL relational database
+* pgVector for vector similarity search
+* BM25 keyword search integration
+* Hybrid indexing with rank fusion
 
-Safety Filters - Prompt injection protection
+### AI/ML Services
 
-Data Layer:
+* OpenAI GPT-4 for answer generation
+* Embedding models for semantic similarity
+* Cross-encoder for re-ranking
+* Translation API for multilingual support
 
-PostgreSQL - Relational database
+---
 
-pgVector - Vector similarity search
+## Key Architectural Decisions
 
-BM25 Integration - Traditional keyword search
+* **Hybrid Search Strategy**: pgVector for semantic similarity, BM25 for keyword matching, Reciprocal Rank Fusion for balance, Cross-encoder for re-ranking
+* **PostgreSQL + pgVector**: unified database for vectors and metadata, ACID compliance, production reliability
+* **Node.js Backend**: async-friendly, full-stack JavaScript, rapid prototyping
 
-Hybrid Indexing - Combined retrieval strategy
+---
 
-AI/ML Services:
+## Project Structure
 
-OpenAI GPT-4 - Answer generation
-
-Embedding Models - Semantic search
-
-Cross-encoder - Re-ranking optimization
-
-Translation API - Multilingual support
-
-Key Architectural Decisions
-✅ Hybrid Search Strategy
-
-pgVector for semantic similarity
-
-BM25 for keyword matching
-
-Reciprocal Rank Fusion for balanced results
-
-Cross-encoder re-ranking for quality improvement
-
-✅ PostgreSQL + pgVector Choice
-
-Single database for vectors + metadata
-
-ACID compliance for data integrity
-
-Proven production reliability
-
-Simplified infrastructure
-
-✅ Node.js Backend
-
-JavaScript full-stack consistency
-
-Excellent async/await for AI API calls
-
-Rich ecosystem for document processing
-
-Fast prototyping capabilities
-
-📁 Project Structure
-text
+```
 A1-Course_QA_Bot-/
-├── frontend/                 # React.js UI Application
-│   ├── src/
-│   │   ├── components/       # Chat, Uploader, Viewer
-│   │   ├── services/         # API clients
-│   │   └── App.jsx          # Main component
-│   └── vite.config.js
+├── frontend/                 # React.js UI
+│   ├── components/           # Chat, Uploader, Viewer
+│   ├── services/             # API clients
+│   └── App.jsx
 │
-├── backend/                  # Node.js API Server
-│   ├── routes/              # /answer, /source, /feedback
-│   ├── models/              # RAG pipeline, embeddings
-│   ├── db/                  # PostgreSQL queries & schema
-│   └── server.js            # Express app
+├── backend/                  # Node.js API
+│   ├── routes/               # /answer, /source, /feedback
+│   ├── models/               # RAG pipeline, embeddings
+│   ├── db/                   # Queries & schema
+│   └── server.js
 │
-├── db/                      # Database Schema & Migrations
-│   ├── schema.sql           # pgVector tables
-│   └── migrations/          # Version control
+├── db/                       # Database schema
+│   ├── schema.sql
+│   └── migrations/
 │
-├── evaluation/              # Performance Metrics
-│   ├── evaluate.py          # Recall, faithfulness tests
-│   └── gold_qa.json         # Test dataset
+├── evaluation/               # Performance metrics
+│   ├── evaluate.py
+│   └── gold_qa.json
 │
-└── docs/                    # Documentation
-    ├── architecture.png     # System diagram
-    ├── one-pager.pdf        # Project summary
-    └── sample-data/         # Example PDFs
-This architecture ensures scalability, maintainability, and high performance while meeting all project requirements for hybrid retrieval, citations, and multilingual support.
+└── docs/                     # Documentation
+    ├── architecture.png
+    ├── one-pager.pdf
+    └── sample-data/
+```
 
-
-
+---
