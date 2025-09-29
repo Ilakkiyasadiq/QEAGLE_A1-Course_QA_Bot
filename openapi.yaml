@@ -1,0 +1,324 @@
+openapi: 3.0.3
+info:
+  title: Course Q&A Bot API
+  version: 1.0.0
+  description: |
+    REST API for a Retrieval-Augmented Generation (RAG) chatbot.
+    Provides endpoints to ingest documents, ask questions, fetch sources, submit feedback,
+    and perform administrative maintenance.
+servers:
+  - url: http://localhost:5000
+    description: Local development
+tags:
+  - name: Health
+  - name: Answer
+  - name: Source
+  - name: Feedback
+  - name: Ingestion
+  - name: Admin
+paths:
+  "/":
+    get:
+      tags: [Health]
+      summary: Health check
+      operationId: getHealth
+      responses:
+        "200":
+          description: API is up
+          content:
+            text/plain:
+              schema:
+                type: string
+              example: "✅ Course Q&A Bot API is running!"
+  "/answer":
+    post:
+      tags: [Answer]
+      summary: Get an answer for a natural-language query
+      operationId: postAnswer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AnswerRequest'
+            examples:
+              default:
+                value:
+                  query: "What is the grading policy?"
+                  lang: "en"
+                  top_k: 5
+      responses:
+        "200":
+          description: Answer successfully generated (or graceful fallback if insufficient information)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnswerResponse'
+              examples:
+                insufficient:
+                  value:
+                    answer: "I don't have enough information in the current knowledge base to answer that. Please ingest relevant sources or rephrase your question."
+                    citations: []
+                    usage: { tokens: 0 }
+                    latency_ms: 12
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  "/source/{id}":
+    get:
+      tags: [Source]
+      summary: Get the full chunk text/metadata for a citation
+      operationId: getSourceById
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Chunk ID (chunk_id)
+      responses:
+        "200":
+          description: Chunk found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SourceResponse'
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  "/feedback":
+    post:
+      tags: [Feedback]
+      summary: Submit labeled feedback for a query/answer
+      operationId: postFeedback
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FeedbackRequest'
+            examples:
+              good:
+                value:
+                  query: "What is the grading policy?"
+                  answer_id: "ans-123"
+                  label: "good"
+                  note: "Accurate"
+      responses:
+        "200":
+          description: Stored
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OkResponse'
+              example:
+                status: ok
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  "/ingest":
+    post:
+      tags: [Ingestion]
+      summary: Ingest a document (multipart upload)
+      operationId: postIngest
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: Text/Markdown/CSV file
+                title:
+                  type: string
+                  description: Optional title; defaults to filename
+                chunkSize:
+                  type: integer
+                  description: Optional chunk size (default 1000)
+                overlap:
+                  type: integer
+                  description: Optional overlap between chunks (default 200)
+      responses:
+        "200":
+          description: Ingestion complete
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IngestResponse'
+              example:
+                status: ok
+                doc_id: 3
+                chunks_inserted: 42
+        "400":
+          description: Missing file or invalid form
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  "/admin/clear":
+    post:
+      tags: [Admin]
+      summary: Danger — truncate all documents and chunks
+      operationId: postAdminClear
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminClearRequest'
+            example:
+              confirm: "DELETE"
+      responses:
+        "200":
+          description: Cleared
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OkResponse'
+              example:
+                status: ok
+        "400":
+          description: Confirmation missing/invalid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+components:
+  schemas:
+    AnswerRequest:
+      type: object
+      required: [query]
+      properties:
+        query:
+          type: string
+          description: User question
+        lang:
+          type: string
+          default: "en"
+          description: Target language code
+        top_k:
+          type: integer
+          default: 5
+          minimum: 1
+          description: Number of chunks to retrieve
+    Citation:
+      type: object
+      properties:
+        source_id:
+          type: integer
+        span:
+          type: string
+        score:
+          type: number
+          format: float
+    AnswerResponse:
+      type: object
+      properties:
+        answer:
+          type: string
+        citations:
+          type: array
+          items:
+            $ref: '#/components/schemas/Citation'
+        usage:
+          type: object
+          properties:
+            tokens:
+              type: number
+        latency_ms:
+          type: integer
+    SourceResponse:
+      type: object
+      properties:
+        source_id:
+          type: integer
+        doc_id:
+          type: integer
+        page_num:
+          type: integer
+        text:
+          type: string
+        metadata:
+          type: object
+          nullable: true
+          additionalProperties: true
+    FeedbackRequest:
+      type: object
+      required: [query, label]
+      properties:
+        query:
+          type: string
+        label:
+          type: string
+          enum: [good, bad]
+        answer_id:
+          type: string
+          nullable: true
+        note:
+          type: string
+          nullable: true
+    IngestResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [ok]
+        doc_id:
+          type: integer
+        chunks_inserted:
+          type: integer
+    AdminClearRequest:
+      type: object
+      required: [confirm]
+      properties:
+        confirm:
+          type: string
+          enum: [DELETE]
+    OkResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [ok]
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
